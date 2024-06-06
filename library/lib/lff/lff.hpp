@@ -36,11 +36,11 @@ namespace lff::detail {
     std::any value{ };
   };
 
-  constexpr lff::hash_t get_hash(const char* data, lff::hash_t value = 0x811c) { // NOLINT(*-no-recursion)
-    if (data[0] == '\0')
+  constexpr lff::hash_t get_hash(const char* config, lff::hash_t value = 0x811c) { // NOLINT(*-no-recursion)
+    if (config[0] == '\0')
       return value;
 
-    return lff::detail::get_hash(&data[1], (value ^ lff::hash_t(data[0])) * 0x111);
+    return lff::detail::get_hash(&config[1], (value ^ lff::hash_t(config[0])) * 0x111);
   }
 
   const unsigned short signature = 0x775d;
@@ -73,7 +73,7 @@ namespace lff {
 
     template <typename cast_type>
     std::optional<cast_type> get_value(const char* name) {
-      return get_value<cast_type>(lff::detail::get_hash(name));
+      return get_value<cast_type>(lff::detail::get_value(name));
     }
 
     std::unordered_map<lff::hash_t, lff::detail::data_entry> values{ };

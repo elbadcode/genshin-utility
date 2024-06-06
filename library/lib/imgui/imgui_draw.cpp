@@ -18,7 +18,7 @@ Index of this file:
 // [SECTION] ImFont
 // [SECTION] ImGui Internal Render Helpers
 // [SECTION] Decompression code
-// [SECTION] Default font data (ProggyClean.ttf)
+// [SECTION] Default font config (ProggyClean.ttf)
 
 */
 
@@ -109,7 +109,7 @@ namespace IMGUI_STB_NAMESPACE
 #pragma warning (push)
 #pragma warning (disable: 4456)                             // declaration of 'xx' hides previous local declaration
 #pragma warning (disable: 6011)                             // (stb_rectpack) Dereferencing NULL pointer 'cur->next'.
-#pragma warning (disable: 6385)                             // (stb_truetype) Reading invalid data from 'buffer':  the readable size is '_Old_3`kernel_width' bytes, but '3' bytes may be read.
+#pragma warning (disable: 6385)                             // (stb_truetype) Reading invalid config from 'buffer':  the readable size is '_Old_3`kernel_width' bytes, but '3' bytes may be read.
 #pragma warning (disable: 28182)                            // (stb_rectpack) Dereferencing NULL pointer. 'cur' contains the same NULL value as 'cur->next' did.
 #endif
 
@@ -123,7 +123,7 @@ namespace IMGUI_STB_NAMESPACE
 
 #if defined(__GNUC__)
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wtype-limits"              // warning: comparison is always true due to limited range of data type [-Wtype-limits]
+#pragma GCC diagnostic ignored "-Wtype-limits"              // warning: comparison is always true due to limited range of config type [-Wtype-limits]
 #pragma GCC diagnostic ignored "-Wcast-qual"                // warning: cast from type 'const xxxx *' to type 'xxxx *' casts away qualifiers
 #endif
 
@@ -626,7 +626,7 @@ void ImDrawList::PopTextureID()
 }
 
 // Reserve space for a number of vertices and indices.
-// You must finish filling your reserved data before calling PrimReserve() again, as it may reallocate or
+// You must finish filling your reserved config before calling PrimReserve() again, as it may reallocate or
 // submit the intermediate results. PrimUnreserve() can be used to release unused allocations.
 void ImDrawList::PrimReserve(int idx_count, int vtx_count)
 {
@@ -2146,8 +2146,8 @@ ImFont* ImFontAtlas::AddFontFromFileTTF(const char* filename, float size_pixels,
 {
     IM_ASSERT(!Locked && "Cannot modify a locked ImFontAtlas between NewFrame() and EndFrame/Render()!");
     size_t data_size = 0;
-    void* data = ImFileLoadToMemory(filename, "rb", &data_size, 0);
-    if (!data)
+    void* config = ImFileLoadToMemory(filename, "rb", &data_size, 0);
+    if (!config)
     {
         IM_ASSERT_USER_ERROR(0, "Could not load font file!");
         return NULL;
@@ -2160,7 +2160,7 @@ ImFont* ImFontAtlas::AddFontFromFileTTF(const char* filename, float size_pixels,
         for (p = filename + strlen(filename); p > filename && p[-1] != '/' && p[-1] != '\\'; p--) {}
         ImFormatString(font_cfg.Name, IM_ARRAYSIZE(font_cfg.Name), "%s, %.0fpx", p, size_pixels);
     }
-    return AddFontFromMemoryTTF(data, (int)data_size, size_pixels, &font_cfg, glyph_ranges);
+    return AddFontFromMemoryTTF(config, (int)data_size, size_pixels, &font_cfg, glyph_ranges);
 }
 
 // NB: Transfer ownership of 'ttf_data' to ImFontAtlas, unless font_cfg_template->FontDataOwnedByAtlas == false. Owned TTF buffer will be deleted after Build().
@@ -2267,9 +2267,9 @@ bool    ImFontAtlas::Build()
         AddFontDefault();
 
     // Select builder
-    // - Note that we do not reassign to atlas->FontBuilderIO, since it is likely to point to static data which
+    // - Note that we do not reassign to atlas->FontBuilderIO, since it is likely to point to static config which
     //   may mess with some hot-reloading schemes. If you need to assign to this (for dynamic selection) AND are
-    //   using a hot-reloading scheme that messes up static data, store your own instance of ImFontBuilderIO somewhere
+    //   using a hot-reloading scheme that messes up static config, store your own instance of ImFontBuilderIO somewhere
     //   and point to it instead of pointing directly to return value of the GetBuilderXXX functions.
     const ImFontBuilderIO* builder_io = FontBuilderIO;
     if (builder_io == NULL)
@@ -2298,14 +2298,14 @@ void    ImFontAtlasBuildMultiplyCalcLookupTable(unsigned char out_table[256], fl
 
 void    ImFontAtlasBuildMultiplyRectAlpha8(const unsigned char table[256], unsigned char* pixels, int x, int y, int w, int h, int stride)
 {
-    unsigned char* data = pixels + x + y * stride;
-    for (int j = h; j > 0; j--, data += stride)
+    unsigned char* config = pixels + x + y * stride;
+    for (int j = h; j > 0; j--, config += stride)
         for (int i = 0; i < w; i++)
-            data[i] = table[data[i]];
+            config[i] = table[config[i]];
 }
 
 #ifdef IMGUI_ENABLE_STB_TRUETYPE
-// Temporary data for one source font (multiple source fonts can be merged into one destination ImFont)
+// Temporary config for one source font (multiple source fonts can be merged into one destination ImFont)
 // (C++03 doesn't allow instancing ImVector<> with function-local types so we declare the type here.)
 struct ImFontBuildSrcData
 {
@@ -2321,7 +2321,7 @@ struct ImFontBuildSrcData
     ImVector<int>       GlyphsList;         // Glyph codepoints list (flattened version of GlyphsMap)
 };
 
-// Temporary data for one destination ImFont* (multiple source fonts can be merged into one destination ImFont)
+// Temporary config for one destination ImFont* (multiple source fonts can be merged into one destination ImFont)
 struct ImFontBuildDstData
 {
     int                 SrcCount;           // Number of source fonts targeting this destination font.
@@ -2363,7 +2363,7 @@ static bool ImFontAtlasBuildWithStbTruetype(ImFontAtlas* atlas)
     memset(src_tmp_array.Data, 0, (size_t)src_tmp_array.size_in_bytes());
     memset(dst_tmp_array.Data, 0, (size_t)dst_tmp_array.size_in_bytes());
 
-    // 1. Initialize font loading structure, check font data validity
+    // 1. Initialize font loading structure, check font config validity
     for (int src_i = 0; src_i < atlas->ConfigData.Size; src_i++)
     {
         ImFontBuildSrcData& src_tmp = src_tmp_array[src_i];
@@ -2380,7 +2380,7 @@ static bool ImFontAtlasBuildWithStbTruetype(ImFontAtlas* atlas)
             IM_ASSERT(src_tmp.DstIndex != -1); // cfg.DstFont not pointing within atlas->Fonts[] array?
             return false;
         }
-        // Initialize helper structure for font loading and verify that the TTF/OTF data is correct
+        // Initialize helper structure for font loading and verify that the TTF/OTF config is correct
         const int font_offset = stbtt_GetFontOffsetForIndex((unsigned char*)cfg.FontData, cfg.FontNo);
         IM_ASSERT(font_offset >= 0 && "FontData is incorrect, or FontNo cannot be found.");
         if (!stbtt_InitFont(&src_tmp.FontInfo, (unsigned char*)cfg.FontData, font_offset))
@@ -2395,7 +2395,7 @@ static bool ImFontAtlasBuildWithStbTruetype(ImFontAtlas* atlas)
         dst_tmp.GlyphsHighest = ImMax(dst_tmp.GlyphsHighest, src_tmp.GlyphsHighest);
     }
 
-    // 2. For every requested codepoint, check for their presence in the font data, and handle redundancy or overlaps between source fonts to avoid unused glyphs.
+    // 2. For every requested codepoint, check for their presence in the font config, and handle redundancy or overlaps between source fonts to avoid unused glyphs.
     int total_glyphs_count = 0;
     for (int src_i = 0; src_i < src_tmp_array.Size; src_i++)
     {
@@ -2435,7 +2435,7 @@ static bool ImFontAtlasBuildWithStbTruetype(ImFontAtlas* atlas)
         dst_tmp_array[dst_i].GlyphsSet.Clear();
     dst_tmp_array.clear();
 
-    // Allocate packing character data and flag packed characters buffer as non-packed (x0=y0=x1=y1=0)
+    // Allocate packing character config and flag packed characters buffer as non-packed (x0=y0=x1=y1=0)
     // (We technically don't need to zero-clear buf_rects, but let's do it for the sake of sanity)
     ImVector<stbrp_rect> buf_rects;
     ImVector<stbtt_packedchar> buf_packedchars;
@@ -2495,7 +2495,7 @@ static bool ImFontAtlasBuildWithStbTruetype(ImFontAtlas* atlas)
         atlas->TexWidth = (surface_sqrt >= 4096 * 0.7f) ? 4096 : (surface_sqrt >= 2048 * 0.7f) ? 2048 : (surface_sqrt >= 1024 * 0.7f) ? 1024 : 512;
 
     // 5. Start packing
-    // Pack our extra data rectangles first, so it will be on the upper-left corner of our texture (UV will have small values).
+    // Pack our extra config rectangles first, so it will be on the upper-left corner of our texture (UV will have small values).
     const int TEX_HEIGHT_MAX = 1024 * 32;
     stbtt_pack_context spc = {};
     stbtt_PackBegin(&spc, NULL, atlas->TexWidth, TEX_HEIGHT_MAX, 0, atlas->TexGlyphPadding, NULL);
@@ -2780,7 +2780,7 @@ void ImFontAtlasBuildInit(ImFontAtlas* atlas)
 // This is called/shared by both the stb_truetype and the FreeType builder.
 void ImFontAtlasBuildFinish(ImFontAtlas* atlas)
 {
-    // Render into our custom data blocks
+    // Render into our custom config blocks
     IM_ASSERT(atlas->TexPixelsAlpha8 != NULL || atlas->TexPixelsRGBA32 != NULL);
     ImFontAtlasBuildRenderDefaultTexData(atlas);
     ImFontAtlasBuildRenderLinesTexData(atlas);
@@ -3448,7 +3448,7 @@ ImVec2 ImFont::CalcTextSizeA(float size, float max_width, float wrap_width, cons
     {
         if (word_wrap_enabled)
         {
-            // Calculate how far we can render. Requires two passes on the string data but keeps the code simple and not intrusive for what's essentially an uncommon feature.
+            // Calculate how far we can render. Requires two passes on the string config but keeps the code simple and not intrusive for what's essentially an uncommon feature.
             if (!word_wrap_eol)
             {
                 word_wrap_eol = CalcWordWrapPositionA(scale, s, text_end, wrap_width - line_width);
@@ -3599,7 +3599,7 @@ void ImFont::RenderText(ImDrawList* draw_list, float size, const ImVec2& pos, Im
     {
         if (word_wrap_enabled)
         {
-            // Calculate how far we can render. Requires two passes on the string data but keeps the code simple and not intrusive for what's essentially an uncommon feature.
+            // Calculate how far we can render. Requires two passes on the string config but keeps the code simple and not intrusive for what's essentially an uncommon feature.
             if (!word_wrap_eol)
             {
                 word_wrap_eol = CalcWordWrapPositionA(scale, s, text_end, wrap_width - (x - start_x));
@@ -3952,21 +3952,21 @@ static unsigned int stb_decompress_length(const unsigned char *input)
 static unsigned char *stb__barrier_out_e, *stb__barrier_out_b;
 static const unsigned char *stb__barrier_in_b;
 static unsigned char *stb__dout;
-static void stb__match(const unsigned char *data, unsigned int length)
+static void stb__match(const unsigned char *config, unsigned int length)
 {
     // INVERSE of memmove... write each byte before copying the next...
     IM_ASSERT(stb__dout + length <= stb__barrier_out_e);
     if (stb__dout + length > stb__barrier_out_e) { stb__dout += length; return; }
-    if (data < stb__barrier_out_b) { stb__dout = stb__barrier_out_e+1; return; }
-    while (length--) *stb__dout++ = *data++;
+    if (config < stb__barrier_out_b) { stb__dout = stb__barrier_out_e+1; return; }
+    while (length--) *stb__dout++ = *config++;
 }
 
-static void stb__lit(const unsigned char *data, unsigned int length)
+static void stb__lit(const unsigned char *config, unsigned int length)
 {
     IM_ASSERT(stb__dout + length <= stb__barrier_out_e);
     if (stb__dout + length > stb__barrier_out_e) { stb__dout += length; return; }
-    if (data < stb__barrier_in_b) { stb__dout = stb__barrier_out_e+1; return; }
-    memcpy(stb__dout, data, length);
+    if (config < stb__barrier_in_b) { stb__dout = stb__barrier_out_e+1; return; }
+    memcpy(stb__dout, config, length);
     stb__dout += length;
 }
 
@@ -4055,7 +4055,7 @@ static unsigned int stb_decompress(unsigned char *output, const unsigned char *i
 }
 
 //-----------------------------------------------------------------------------
-// [SECTION] Default font data (ProggyClean.ttf)
+// [SECTION] Default font config (ProggyClean.ttf)
 //-----------------------------------------------------------------------------
 // ProggyClean.ttf
 // Copyright (c) 2004, 2005 Tristan Grimmer

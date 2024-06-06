@@ -24,7 +24,7 @@
 //
 //   Todo:
 //        non-MS cmaps
-//        crashproof on bad data
+//        crashproof on bad config
 //        hinting? (no longer patented)
 //        cleartype-style AA?
 //        optimize: use simple memory allocator for intermediates
@@ -66,7 +66,7 @@
 //   1.26 (2021-08-28) fix broken rasterizer
 //   1.25 (2021-07-11) many fixes
 //   1.24 (2020-02-05) fix warning
-//   1.23 (2020-02-02) query SVG data for glyphs; query whole kerning table (but only kern not GPOS)
+//   1.23 (2020-02-02) query SVG config for glyphs; query whole kerning table (but only kern not GPOS)
 //   1.22 (2019-08-11) minimize missing-glyph duplication; fix kerning if both 'GPOS' and 'kern' are defined
 //   1.21 (2019-02-25) fix warning
 //   1.20 (2019-02-07) PackFontRange skips missing codepoints; GetScaleFontVMetrics()
@@ -190,7 +190,7 @@
 //         inch. For example, Windows traditionally uses a convention that
 //         there are 96 pixels per inch, thus making 'inch' measurements have
 //         nothing to do with inches, and thus effectively defining a point to
-//         be 1.333 pixels. Additionally, the TrueType font data provides
+//         be 1.333 pixels. Additionally, the TrueType font config provides
 //         an explicit scale factor to scale a given font's glyphs to points,
 //         but the author has observed that this scale factor is often wrong
 //         for non-commercial fonts, thus making fonts scaled in points
@@ -253,9 +253,9 @@
 //
 // NOTES
 //
-//   The system uses the raw data found in the .ttf file without changing it
-//   and without building auxiliary data structures. This is a bit inefficient
-//   on little-endian systems (the data is big-endian), but assuming you're
+//   The system uses the raw config found in the .ttf file without changing it
+//   and without building auxiliary config structures. This is a bit inefficient
+//   on little-endian systems (the config is big-endian), but assuming you're
 //   caching the bitmaps or glyph shapes this shouldn't be a big deal.
 //
 //   It appears to be very hard to programmatically determine what font a
@@ -397,7 +397,7 @@ int main(int arg, char **argv)
       stbtt_GetCodepointHMetrics(&font, text[ch], &advance, &lsb);
       stbtt_GetCodepointBitmapBoxSubpixel(&font, text[ch], scale,scale,x_shift,0, &x0,&y0,&x1,&y1);
       stbtt_MakeCodepointBitmapSubpixel(&font, &screen[baseline + y0][(int) xpos + x0], x1-x0,y1-y0, 79, scale,scale,x_shift,0, text[ch]);
-      // note that this stomps the old data, so where character boxes overlap (e.g. 'lj') it's wrong
+      // note that this stomps the old config, so where character boxes overlap (e.g. 'lj') it's wrong
       // because this API is really for baking character bitmaps into textures. if you want to render
       // a sequence of characters, you really need to render each bitmap to a temp buffer, then
       // "alpha blend" that into the working buffer
@@ -517,7 +517,7 @@ extern "C" {
 // private structure
 typedef struct
 {
-   unsigned char *data;
+   unsigned char *config;
    int cursor;
    int size;
 } stbtt__buf;
@@ -535,7 +535,7 @@ typedef struct
    float xoff,yoff,xadvance;
 } stbtt_bakedchar;
 
-STBTT_DEF int stbtt_BakeFontBitmap(const unsigned char *data, int offset,  // font location (use offset=0 for plain .ttf)
+STBTT_DEF int stbtt_BakeFontBitmap(const unsigned char *config, int offset,  // font location (use offset=0 for plain .ttf)
                                 float pixel_height,                     // height of font in pixels
                                 unsigned char *pixels, int pw, int ph,  // bitmap to be filled in
                                 int first_char, int num_chars,          // characters to bake
@@ -551,7 +551,7 @@ typedef struct
    float x1,y1,s1,t1; // bottom-right
 } stbtt_aligned_quad;
 
-STBTT_DEF void stbtt_GetBakedQuad(const stbtt_bakedchar *chardata, int pw, int ph,  // same data as above
+STBTT_DEF void stbtt_GetBakedQuad(const stbtt_bakedchar *chardata, int pw, int ph,  // same config as above
                                int char_index,             // character to display
                                float *xpos, float *ypos,   // pointers to current position in screen pixel space
                                stbtt_aligned_quad *q,      // output: quad to draw
@@ -659,7 +659,7 @@ STBTT_DEF void stbtt_PackSetSkipMissingCodepoints(stbtt_pack_context *spc, int s
 // codepoints without a glyph recived the font's "missing character" glyph,
 // typically an empty box by convention.
 
-STBTT_DEF void stbtt_GetPackedQuad(const stbtt_packedchar *chardata, int pw, int ph,  // same data as above
+STBTT_DEF void stbtt_GetPackedQuad(const stbtt_packedchar *chardata, int pw, int ph,  // same config as above
                                int char_index,             // character to display
                                float *xpos, float *ypos,   // pointers to current position in screen pixel space
                                stbtt_aligned_quad *q,      // output: quad to draw
@@ -670,7 +670,7 @@ STBTT_DEF void stbtt_PackFontRangesPackRects(stbtt_pack_context *spc, stbrp_rect
 STBTT_DEF int  stbtt_PackFontRangesRenderIntoRects(stbtt_pack_context *spc, const stbtt_fontinfo *info, stbtt_pack_range *ranges, int num_ranges, stbrp_rect *rects);
 // Calling these functions in sequence is roughly equivalent to calling
 // stbtt_PackFontRanges(). If you more control over the packing of multiple
-// fonts, or if you want to pack custom data into a font texture, take a look
+// fonts, or if you want to pack custom config into a font texture, take a look
 // at the source to of stbtt_PackFontRanges() and create a custom version
 // using these functions, e.g. call GatherRects multiple times,
 // building up a single array of rects, then call PackRects once,
@@ -699,14 +699,14 @@ struct stbtt_pack_context {
 //
 //
 
-STBTT_DEF int stbtt_GetNumberOfFonts(const unsigned char *data);
+STBTT_DEF int stbtt_GetNumberOfFonts(const unsigned char *config);
 // This function will determine the number of fonts in a font file.  TrueType
 // collection (.ttc) files may contain multiple fonts, while TrueType font
 // (.ttf) files only contain one font. The number of fonts can be used for
 // indexing with the previous function where the index is between zero and one
 // less than the total fonts. If an error occurs, -1 is returned.
 
-STBTT_DEF int stbtt_GetFontOffsetForIndex(const unsigned char *data, int index);
+STBTT_DEF int stbtt_GetFontOffsetForIndex(const unsigned char *config, int index);
 // Each .ttf/.ttc file may have more than one font. Each font has a sequential
 // index number starting from 0. Call this function to get the font offset for
 // a given index; it returns -1 if the index is out of range. A regular .ttf
@@ -718,7 +718,7 @@ STBTT_DEF int stbtt_GetFontOffsetForIndex(const unsigned char *data, int index);
 struct stbtt_fontinfo
 {
    void           * userdata;
-   unsigned char  * data;              // pointer to .ttf file
+   unsigned char  * config;              // pointer to .ttf file
    int              fontstart;         // offset of start of font
 
    int numGlyphs;                     // number of glyphs, needed for range checking
@@ -727,7 +727,7 @@ struct stbtt_fontinfo
    int index_map;                     // a cmap mapping for our chosen character encoding
    int indexToLocFormat;              // format needed to map from glyph index to glyph
 
-   stbtt__buf cff;                    // cff font data
+   stbtt__buf cff;                    // cff font config
    stbtt__buf charstrings;            // the charstring index
    stbtt__buf gsubrs;                 // global charstring subroutines index
    stbtt__buf subrs;                  // private charstring subroutines index
@@ -735,12 +735,12 @@ struct stbtt_fontinfo
    stbtt__buf fdselect;               // map from glyph to fontdict
 };
 
-STBTT_DEF int stbtt_InitFont(stbtt_fontinfo *info, const unsigned char *data, int offset);
+STBTT_DEF int stbtt_InitFont(stbtt_fontinfo *info, const unsigned char *config, int offset);
 // Given an offset into the file that defines a font, this function builds
 // the necessary cached info for the rest of the system. You must allocate
 // the stbtt_fontinfo yourself, and stbtt_InitFont will fill it out. You don't
 // need to do anything special to free it, because the contents are pure
-// value data with no additional data structures. Returns 0 on failure.
+// value config with no additional config structures. Returns 0 on failure.
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -860,13 +860,13 @@ STBTT_DEF int stbtt_GetGlyphShape(const stbtt_fontinfo *info, int glyph_index, s
 // its x,y, using cx,cy as the bezier control point.
 
 STBTT_DEF void stbtt_FreeShape(const stbtt_fontinfo *info, stbtt_vertex *vertices);
-// frees the data allocated above
+// frees the config allocated above
 
 STBTT_DEF unsigned char *stbtt_FindSVGDoc(const stbtt_fontinfo *info, int gl);
 STBTT_DEF int stbtt_GetCodepointSVG(const stbtt_fontinfo *info, int unicode_codepoint, const char **svg);
 STBTT_DEF int stbtt_GetGlyphSVG(const stbtt_fontinfo *info, int gl, const char **svg);
-// fills svg with the character's SVG data.
-// returns data size or 0 if SVG not found.
+// fills svg with the character's SVG config.
+// returns config size or 0 if SVG not found.
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -1132,21 +1132,21 @@ typedef int stbtt__test_oversample_pow2[(STBTT_MAX_OVERSAMPLE & (STBTT_MAX_OVERS
 
 //////////////////////////////////////////////////////////////////////////
 //
-// stbtt__buf helpers to parse data from file
+// stbtt__buf helpers to parse config from file
 //
 
 static stbtt_uint8 stbtt__buf_get8(stbtt__buf *b)
 {
    if (b->cursor >= b->size)
       return 0;
-   return b->data[b->cursor++];
+   return b->config[b->cursor++];
 }
 
 static stbtt_uint8 stbtt__buf_peek8(stbtt__buf *b)
 {
    if (b->cursor >= b->size)
       return 0;
-   return b->data[b->cursor];
+   return b->config[b->cursor];
 }
 
 static void stbtt__buf_seek(stbtt__buf *b, int o)
@@ -1174,7 +1174,7 @@ static stbtt__buf stbtt__new_buf(const void *p, size_t size)
 {
    stbtt__buf r;
    STBTT_assert(size < 0x40000000);
-   r.data = (stbtt_uint8*) p;
+   r.config = (stbtt_uint8*) p;
    r.size = (int) size;
    r.cursor = 0;
    return r;
@@ -1187,7 +1187,7 @@ static stbtt__buf stbtt__buf_range(const stbtt__buf *b, int o, int s)
 {
    stbtt__buf r = stbtt__new_buf(NULL, 0);
    if (o < 0 || s < 0 || o > b->size || s > b->size - o) return r;
-   r.data = b->data + o;
+   r.config = b->config + o;
    r.size = s;
    return r;
 }
@@ -1278,7 +1278,7 @@ static stbtt__buf stbtt__cff_index_get(stbtt__buf b, int i)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// accessors to parse data from file
+// accessors to parse config from file
 //
 
 // on platforms that don't allow misaligned reads, if we want to allow
@@ -1308,15 +1308,15 @@ static int stbtt__isfont(stbtt_uint8 *font)
 }
 
 // @OPTIMIZE: binary search
-static stbtt_uint32 stbtt__find_table(stbtt_uint8 *data, stbtt_uint32 fontstart, const char *tag)
+static stbtt_uint32 stbtt__find_table(stbtt_uint8 *config, stbtt_uint32 fontstart, const char *tag)
 {
-   stbtt_int32 num_tables = ttUSHORT(data+fontstart+4);
+   stbtt_int32 num_tables = ttUSHORT(config+fontstart+4);
    stbtt_uint32 tabledir = fontstart + 12;
    stbtt_int32 i;
    for (i=0; i < num_tables; ++i) {
       stbtt_uint32 loc = tabledir + 16*i;
-      if (stbtt_tag(data+loc+0, tag))
-         return ttULONG(data+loc+8);
+      if (stbtt_tag(config+loc+0, tag))
+         return ttULONG(config+loc+8);
    }
    return 0;
 }
@@ -1374,9 +1374,9 @@ static int stbtt__get_svg(stbtt_fontinfo *info)
 {
    stbtt_uint32 t;
    if (info->svg < 0) {
-      t = stbtt__find_table(info->data, info->fontstart, "SVG ");
+      t = stbtt__find_table(info->config, info->fontstart, "SVG ");
       if (t) {
-         stbtt_uint32 offset = ttULONG(info->data + t + 2);
+         stbtt_uint32 offset = ttULONG(info->config + t + 2);
          info->svg = t + offset;
       } else {
          info->svg = 0;
@@ -1385,23 +1385,23 @@ static int stbtt__get_svg(stbtt_fontinfo *info)
    return info->svg;
 }
 
-static int stbtt_InitFont_internal(stbtt_fontinfo *info, unsigned char *data, int fontstart)
+static int stbtt_InitFont_internal(stbtt_fontinfo *info, unsigned char *config, int fontstart)
 {
    stbtt_uint32 cmap, t;
    stbtt_int32 i,numTables;
 
-   info->data = data;
+   info->config = config;
    info->fontstart = fontstart;
    info->cff = stbtt__new_buf(NULL, 0);
 
-   cmap = stbtt__find_table(data, fontstart, "cmap");       // required
-   info->loca = stbtt__find_table(data, fontstart, "loca"); // required
-   info->head = stbtt__find_table(data, fontstart, "head"); // required
-   info->glyf = stbtt__find_table(data, fontstart, "glyf"); // required
-   info->hhea = stbtt__find_table(data, fontstart, "hhea"); // required
-   info->hmtx = stbtt__find_table(data, fontstart, "hmtx"); // required
-   info->kern = stbtt__find_table(data, fontstart, "kern"); // not required
-   info->gpos = stbtt__find_table(data, fontstart, "GPOS"); // not required
+   cmap = stbtt__find_table(config, fontstart, "cmap");       // required
+   info->loca = stbtt__find_table(config, fontstart, "loca"); // required
+   info->head = stbtt__find_table(config, fontstart, "head"); // required
+   info->glyf = stbtt__find_table(config, fontstart, "glyf"); // required
+   info->hhea = stbtt__find_table(config, fontstart, "hhea"); // required
+   info->hmtx = stbtt__find_table(config, fontstart, "hmtx"); // required
+   info->kern = stbtt__find_table(config, fontstart, "kern"); // not required
+   info->gpos = stbtt__find_table(config, fontstart, "GPOS"); // not required
 
    if (!cmap || !info->head || !info->hhea || !info->hmtx)
       return 0;
@@ -1414,14 +1414,14 @@ static int stbtt_InitFont_internal(stbtt_fontinfo *info, unsigned char *data, in
       stbtt_uint32 cstype = 2, charstrings = 0, fdarrayoff = 0, fdselectoff = 0;
       stbtt_uint32 cff;
 
-      cff = stbtt__find_table(data, fontstart, "CFF ");
+      cff = stbtt__find_table(config, fontstart, "CFF ");
       if (!cff) return 0;
 
       info->fontdicts = stbtt__new_buf(NULL, 0);
       info->fdselect = stbtt__new_buf(NULL, 0);
 
       // @TODO this should use size from table (not 512MB)
-      info->cff = stbtt__new_buf(data+cff, 512*1024*1024);
+      info->cff = stbtt__new_buf(config+cff, 512*1024*1024);
       b = info->cff;
 
       // read the header
@@ -1458,9 +1458,9 @@ static int stbtt_InitFont_internal(stbtt_fontinfo *info, unsigned char *data, in
       info->charstrings = stbtt__cff_get_index(&b);
    }
 
-   t = stbtt__find_table(data, fontstart, "maxp");
+   t = stbtt__find_table(config, fontstart, "maxp");
    if (t)
-      info->numGlyphs = ttUSHORT(data+t+4);
+      info->numGlyphs = ttUSHORT(config+t+4);
    else
       info->numGlyphs = 0xffff;
 
@@ -1469,60 +1469,60 @@ static int stbtt_InitFont_internal(stbtt_fontinfo *info, unsigned char *data, in
    // find a cmap encoding table we understand *now* to avoid searching
    // later. (todo: could make this installable)
    // the same regardless of glyph.
-   numTables = ttUSHORT(data + cmap + 2);
+   numTables = ttUSHORT(config + cmap + 2);
    info->index_map = 0;
    for (i=0; i < numTables; ++i) {
       stbtt_uint32 encoding_record = cmap + 4 + 8 * i;
       // find an encoding we understand:
-      switch(ttUSHORT(data+encoding_record)) {
+      switch(ttUSHORT(config+encoding_record)) {
          case STBTT_PLATFORM_ID_MICROSOFT:
-            switch (ttUSHORT(data+encoding_record+2)) {
+            switch (ttUSHORT(config+encoding_record+2)) {
                case STBTT_MS_EID_UNICODE_BMP:
                case STBTT_MS_EID_UNICODE_FULL:
                   // MS/Unicode
-                  info->index_map = cmap + ttULONG(data+encoding_record+4);
+                  info->index_map = cmap + ttULONG(config+encoding_record+4);
                   break;
             }
             break;
         case STBTT_PLATFORM_ID_UNICODE:
             // Mac/iOS has these
             // all the encodingIDs are unicode, so we don't bother to check it
-            info->index_map = cmap + ttULONG(data+encoding_record+4);
+            info->index_map = cmap + ttULONG(config+encoding_record+4);
             break;
       }
    }
    if (info->index_map == 0)
       return 0;
 
-   info->indexToLocFormat = ttUSHORT(data+info->head + 50);
+   info->indexToLocFormat = ttUSHORT(config+info->head + 50);
    return 1;
 }
 
 STBTT_DEF int stbtt_FindGlyphIndex(const stbtt_fontinfo *info, int unicode_codepoint)
 {
-   stbtt_uint8 *data = info->data;
+   stbtt_uint8 *config = info->config;
    stbtt_uint32 index_map = info->index_map;
 
-   stbtt_uint16 format = ttUSHORT(data + index_map + 0);
+   stbtt_uint16 format = ttUSHORT(config + index_map + 0);
    if (format == 0) { // apple byte encoding
-      stbtt_int32 bytes = ttUSHORT(data + index_map + 2);
+      stbtt_int32 bytes = ttUSHORT(config + index_map + 2);
       if (unicode_codepoint < bytes-6)
-         return ttBYTE(data + index_map + 6 + unicode_codepoint);
+         return ttBYTE(config + index_map + 6 + unicode_codepoint);
       return 0;
    } else if (format == 6) {
-      stbtt_uint32 first = ttUSHORT(data + index_map + 6);
-      stbtt_uint32 count = ttUSHORT(data + index_map + 8);
+      stbtt_uint32 first = ttUSHORT(config + index_map + 6);
+      stbtt_uint32 count = ttUSHORT(config + index_map + 8);
       if ((stbtt_uint32) unicode_codepoint >= first && (stbtt_uint32) unicode_codepoint < first+count)
-         return ttUSHORT(data + index_map + 10 + (unicode_codepoint - first)*2);
+         return ttUSHORT(config + index_map + 10 + (unicode_codepoint - first)*2);
       return 0;
    } else if (format == 2) {
       STBTT_assert(0); // @TODO: high-byte mapping for japanese/chinese/korean
       return 0;
    } else if (format == 4) { // standard mapping for windows fonts: binary search collection of ranges
-      stbtt_uint16 segcount = ttUSHORT(data+index_map+6) >> 1;
-      stbtt_uint16 searchRange = ttUSHORT(data+index_map+8) >> 1;
-      stbtt_uint16 entrySelector = ttUSHORT(data+index_map+10);
-      stbtt_uint16 rangeShift = ttUSHORT(data+index_map+12) >> 1;
+      stbtt_uint16 segcount = ttUSHORT(config+index_map+6) >> 1;
+      stbtt_uint16 searchRange = ttUSHORT(config+index_map+8) >> 1;
+      stbtt_uint16 entrySelector = ttUSHORT(config+index_map+10);
+      stbtt_uint16 rangeShift = ttUSHORT(config+index_map+12) >> 1;
 
       // do a binary search of the segments
       stbtt_uint32 endCount = index_map + 14;
@@ -1533,7 +1533,7 @@ STBTT_DEF int stbtt_FindGlyphIndex(const stbtt_fontinfo *info, int unicode_codep
 
       // they lie from endCount .. endCount + segCount
       // but searchRange is the nearest power of two, so...
-      if (unicode_codepoint >= ttUSHORT(data + search + rangeShift*2))
+      if (unicode_codepoint >= ttUSHORT(config + search + rangeShift*2))
          search += rangeShift*2;
 
       // now decrement to bias correctly to find smallest
@@ -1541,7 +1541,7 @@ STBTT_DEF int stbtt_FindGlyphIndex(const stbtt_fontinfo *info, int unicode_codep
       while (entrySelector) {
          stbtt_uint16 end;
          searchRange >>= 1;
-         end = ttUSHORT(data + search + searchRange*2);
+         end = ttUSHORT(config + search + searchRange*2);
          if (unicode_codepoint > end)
             search += searchRange*2;
          --entrySelector;
@@ -1552,32 +1552,32 @@ STBTT_DEF int stbtt_FindGlyphIndex(const stbtt_fontinfo *info, int unicode_codep
          stbtt_uint16 offset, start, last;
          stbtt_uint16 item = (stbtt_uint16) ((search - endCount) >> 1);
 
-         start = ttUSHORT(data + index_map + 14 + segcount*2 + 2 + 2*item);
-         last = ttUSHORT(data + endCount + 2*item);
+         start = ttUSHORT(config + index_map + 14 + segcount*2 + 2 + 2*item);
+         last = ttUSHORT(config + endCount + 2*item);
          if (unicode_codepoint < start || unicode_codepoint > last)
             return 0;
 
-         offset = ttUSHORT(data + index_map + 14 + segcount*6 + 2 + 2*item);
+         offset = ttUSHORT(config + index_map + 14 + segcount*6 + 2 + 2*item);
          if (offset == 0)
-            return (stbtt_uint16) (unicode_codepoint + ttSHORT(data + index_map + 14 + segcount*4 + 2 + 2*item));
+            return (stbtt_uint16) (unicode_codepoint + ttSHORT(config + index_map + 14 + segcount*4 + 2 + 2*item));
 
-         return ttUSHORT(data + offset + (unicode_codepoint-start)*2 + index_map + 14 + segcount*6 + 2 + 2*item);
+         return ttUSHORT(config + offset + (unicode_codepoint-start)*2 + index_map + 14 + segcount*6 + 2 + 2*item);
       }
    } else if (format == 12 || format == 13) {
-      stbtt_uint32 ngroups = ttULONG(data+index_map+12);
+      stbtt_uint32 ngroups = ttULONG(config+index_map+12);
       stbtt_int32 low,high;
       low = 0; high = (stbtt_int32)ngroups;
       // Binary search the right group.
       while (low < high) {
          stbtt_int32 mid = low + ((high-low) >> 1); // rounds down, so low <= mid < high
-         stbtt_uint32 start_char = ttULONG(data+index_map+16+mid*12);
-         stbtt_uint32 end_char = ttULONG(data+index_map+16+mid*12+4);
+         stbtt_uint32 start_char = ttULONG(config+index_map+16+mid*12);
+         stbtt_uint32 end_char = ttULONG(config+index_map+16+mid*12+4);
          if ((stbtt_uint32) unicode_codepoint < start_char)
             high = mid;
          else if ((stbtt_uint32) unicode_codepoint > end_char)
             low = mid+1;
          else {
-            stbtt_uint32 start_glyph = ttULONG(data+index_map+16+mid*12+8);
+            stbtt_uint32 start_glyph = ttULONG(config+index_map+16+mid*12+8);
             if (format == 12)
                return start_glyph + unicode_codepoint-start_char;
             else // format == 13
@@ -1615,11 +1615,11 @@ static int stbtt__GetGlyfOffset(const stbtt_fontinfo *info, int glyph_index)
    if (info->indexToLocFormat >= 2)    return -1; // unknown index->glyph map format
 
    if (info->indexToLocFormat == 0) {
-      g1 = info->glyf + ttUSHORT(info->data + info->loca + glyph_index * 2) * 2;
-      g2 = info->glyf + ttUSHORT(info->data + info->loca + glyph_index * 2 + 2) * 2;
+      g1 = info->glyf + ttUSHORT(info->config + info->loca + glyph_index * 2) * 2;
+      g2 = info->glyf + ttUSHORT(info->config + info->loca + glyph_index * 2 + 2) * 2;
    } else {
-      g1 = info->glyf + ttULONG (info->data + info->loca + glyph_index * 4);
-      g2 = info->glyf + ttULONG (info->data + info->loca + glyph_index * 4 + 4);
+      g1 = info->glyf + ttULONG (info->config + info->loca + glyph_index * 4);
+      g2 = info->glyf + ttULONG (info->config + info->loca + glyph_index * 4 + 4);
    }
 
    return g1==g2 ? -1 : g1; // if length is 0, return -1
@@ -1635,10 +1635,10 @@ STBTT_DEF int stbtt_GetGlyphBox(const stbtt_fontinfo *info, int glyph_index, int
       int g = stbtt__GetGlyfOffset(info, glyph_index);
       if (g < 0) return 0;
 
-      if (x0) *x0 = ttSHORT(info->data + g + 2);
-      if (y0) *y0 = ttSHORT(info->data + g + 4);
-      if (x1) *x1 = ttSHORT(info->data + g + 6);
-      if (y1) *y1 = ttSHORT(info->data + g + 8);
+      if (x0) *x0 = ttSHORT(info->config + g + 2);
+      if (y0) *y0 = ttSHORT(info->config + g + 4);
+      if (x1) *x1 = ttSHORT(info->config + g + 6);
+      if (y1) *y1 = ttSHORT(info->config + g + 8);
    }
    return 1;
 }
@@ -1656,7 +1656,7 @@ STBTT_DEF int stbtt_IsGlyphEmpty(const stbtt_fontinfo *info, int glyph_index)
       return stbtt__GetGlyphInfoT2(info, glyph_index, NULL, NULL, NULL, NULL) == 0;
    g = stbtt__GetGlyfOffset(info, glyph_index);
    if (g < 0) return 1;
-   numberOfContours = ttSHORT(info->data + g);
+   numberOfContours = ttSHORT(info->config + g);
    return numberOfContours == 0;
 }
 
@@ -1680,7 +1680,7 @@ static int stbtt__GetGlyphShapeTT(const stbtt_fontinfo *info, int glyph_index, s
 {
    stbtt_int16 numberOfContours;
    stbtt_uint8 *endPtsOfContours;
-   stbtt_uint8 *data = info->data;
+   stbtt_uint8 *config = info->config;
    stbtt_vertex *vertices=0;
    int num_vertices=0;
    int g = stbtt__GetGlyfOffset(info, glyph_index);
@@ -1689,16 +1689,16 @@ static int stbtt__GetGlyphShapeTT(const stbtt_fontinfo *info, int glyph_index, s
 
    if (g < 0) return 0;
 
-   numberOfContours = ttSHORT(data + g);
+   numberOfContours = ttSHORT(config + g);
 
    if (numberOfContours > 0) {
       stbtt_uint8 flags=0,flagcount;
       stbtt_int32 ins, i,j=0,m,n, next_move, was_off=0, off, start_off=0;
       stbtt_int32 x,y,cx,cy,sx,sy, scx,scy;
       stbtt_uint8 *points;
-      endPtsOfContours = (data + g + 10);
-      ins = ttUSHORT(data + g + 10 + numberOfContours * 2);
-      points = data + g + 10 + numberOfContours * 2 + 2 + ins;
+      endPtsOfContours = (config + g + 10);
+      ins = ttUSHORT(config + g + 10 + numberOfContours * 2);
+      points = config + g + 10 + numberOfContours * 2 + 2 + ins;
 
       n = 1+ttUSHORT(endPtsOfContours + numberOfContours*2-2);
 
@@ -1710,11 +1710,11 @@ static int stbtt__GetGlyphShapeTT(const stbtt_fontinfo *info, int glyph_index, s
       next_move = 0;
       flagcount=0;
 
-      // in first pass, we load uninterpreted data into the allocated array
+      // in first pass, we load uninterpreted config into the allocated array
       // above, shifted to the end of the array so we won't overwrite it when
-      // we create our final data starting from the front
+      // we create our final config starting from the front
 
-      off = m - n; // starting offset for uninterpreted data, regardless of how m ends up being calculated
+      off = m - n; // starting offset for uninterpreted config, regardless of how m ends up being calculated
 
       // first load flags
 
@@ -1773,7 +1773,7 @@ static int stbtt__GetGlyphShapeTT(const stbtt_fontinfo *info, int glyph_index, s
                num_vertices = stbtt__close_shape(vertices, num_vertices, was_off, start_off, sx,sy,scx,scy,cx,cy);
 
             // now start the new one
-            start_off = !(flags & 1);
+            start_off = ~(flags & 1);
             if (start_off) {
                // if we start off with an off-curve point, then when we need to find a point on the curve
                // where we can start, and we need to save some state for when we wraparound.
@@ -1817,7 +1817,7 @@ static int stbtt__GetGlyphShapeTT(const stbtt_fontinfo *info, int glyph_index, s
    } else if (numberOfContours < 0) {
       // Compound shapes.
       int more = 1;
-      stbtt_uint8 *comp = data + g + 10;
+      stbtt_uint8 *comp = config + g + 10;
       num_vertices = 0;
       vertices = 0;
       while (more) {
@@ -2309,53 +2309,53 @@ STBTT_DEF int stbtt_GetGlyphShape(const stbtt_fontinfo *info, int glyph_index, s
 
 STBTT_DEF void stbtt_GetGlyphHMetrics(const stbtt_fontinfo *info, int glyph_index, int *advanceWidth, int *leftSideBearing)
 {
-   stbtt_uint16 numOfLongHorMetrics = ttUSHORT(info->data+info->hhea + 34);
+   stbtt_uint16 numOfLongHorMetrics = ttUSHORT(info->config+info->hhea + 34);
    if (glyph_index < numOfLongHorMetrics) {
-      if (advanceWidth)     *advanceWidth    = ttSHORT(info->data + info->hmtx + 4*glyph_index);
-      if (leftSideBearing)  *leftSideBearing = ttSHORT(info->data + info->hmtx + 4*glyph_index + 2);
+      if (advanceWidth)     *advanceWidth    = ttSHORT(info->config + info->hmtx + 4*glyph_index);
+      if (leftSideBearing)  *leftSideBearing = ttSHORT(info->config + info->hmtx + 4*glyph_index + 2);
    } else {
-      if (advanceWidth)     *advanceWidth    = ttSHORT(info->data + info->hmtx + 4*(numOfLongHorMetrics-1));
-      if (leftSideBearing)  *leftSideBearing = ttSHORT(info->data + info->hmtx + 4*numOfLongHorMetrics + 2*(glyph_index - numOfLongHorMetrics));
+      if (advanceWidth)     *advanceWidth    = ttSHORT(info->config + info->hmtx + 4*(numOfLongHorMetrics-1));
+      if (leftSideBearing)  *leftSideBearing = ttSHORT(info->config + info->hmtx + 4*numOfLongHorMetrics + 2*(glyph_index - numOfLongHorMetrics));
    }
 }
 
 STBTT_DEF int  stbtt_GetKerningTableLength(const stbtt_fontinfo *info)
 {
-   stbtt_uint8 *data = info->data + info->kern;
+   stbtt_uint8 *config = info->config + info->kern;
 
    // we only look at the first table. it must be 'horizontal' and format 0.
    if (!info->kern)
       return 0;
-   if (ttUSHORT(data+2) < 1) // number of tables, need at least 1
+   if (ttUSHORT(config+2) < 1) // number of tables, need at least 1
       return 0;
-   if (ttUSHORT(data+8) != 1) // horizontal flag must be set in format
+   if (ttUSHORT(config+8) != 1) // horizontal flag must be set in format
       return 0;
 
-   return ttUSHORT(data+10);
+   return ttUSHORT(config+10);
 }
 
 STBTT_DEF int stbtt_GetKerningTable(const stbtt_fontinfo *info, stbtt_kerningentry* table, int table_length)
 {
-   stbtt_uint8 *data = info->data + info->kern;
+   stbtt_uint8 *config = info->config + info->kern;
    int k, length;
 
    // we only look at the first table. it must be 'horizontal' and format 0.
    if (!info->kern)
       return 0;
-   if (ttUSHORT(data+2) < 1) // number of tables, need at least 1
+   if (ttUSHORT(config+2) < 1) // number of tables, need at least 1
       return 0;
-   if (ttUSHORT(data+8) != 1) // horizontal flag must be set in format
+   if (ttUSHORT(config+8) != 1) // horizontal flag must be set in format
       return 0;
 
-   length = ttUSHORT(data+10);
+   length = ttUSHORT(config+10);
    if (table_length < length)
       length = table_length;
 
    for (k = 0; k < length; k++)
    {
-      table[k].glyph1 = ttUSHORT(data+18+(k*6));
-      table[k].glyph2 = ttUSHORT(data+20+(k*6));
-      table[k].advance = ttSHORT(data+22+(k*6));
+      table[k].glyph1 = ttUSHORT(config+18+(k*6));
+      table[k].glyph2 = ttUSHORT(config+20+(k*6));
+      table[k].advance = ttSHORT(config+22+(k*6));
    }
 
    return length;
@@ -2363,30 +2363,30 @@ STBTT_DEF int stbtt_GetKerningTable(const stbtt_fontinfo *info, stbtt_kerningent
 
 static int stbtt__GetGlyphKernInfoAdvance(const stbtt_fontinfo *info, int glyph1, int glyph2)
 {
-   stbtt_uint8 *data = info->data + info->kern;
+   stbtt_uint8 *config = info->config + info->kern;
    stbtt_uint32 needle, straw;
    int l, r, m;
 
    // we only look at the first table. it must be 'horizontal' and format 0.
    if (!info->kern)
       return 0;
-   if (ttUSHORT(data+2) < 1) // number of tables, need at least 1
+   if (ttUSHORT(config+2) < 1) // number of tables, need at least 1
       return 0;
-   if (ttUSHORT(data+8) != 1) // horizontal flag must be set in format
+   if (ttUSHORT(config+8) != 1) // horizontal flag must be set in format
       return 0;
 
    l = 0;
-   r = ttUSHORT(data+10) - 1;
+   r = ttUSHORT(config+10) - 1;
    needle = glyph1 << 16 | glyph2;
    while (l <= r) {
       m = (l + r) >> 1;
-      straw = ttULONG(data+18+(m*6)); // note: unaligned read
+      straw = ttULONG(config+18+(m*6)); // note: unaligned read
       if (needle < straw)
          r = m - 1;
       else if (needle > straw)
          l = m + 1;
       else
-         return ttSHORT(data+22+(m*6));
+         return ttSHORT(config+22+(m*6));
    }
    return 0;
 }
@@ -2503,18 +2503,18 @@ static stbtt_int32 stbtt__GetGlyphGPOSInfoAdvance(const stbtt_fontinfo *info, in
    stbtt_uint16 lookupListOffset;
    stbtt_uint8 *lookupList;
    stbtt_uint16 lookupCount;
-   stbtt_uint8 *data;
+   stbtt_uint8 *config;
    stbtt_int32 i, sti;
 
    if (!info->gpos) return 0;
 
-   data = info->data + info->gpos;
+   config = info->config + info->gpos;
 
-   if (ttUSHORT(data+0) != 1) return 0; // Major version 1
-   if (ttUSHORT(data+2) != 0) return 0; // Minor version 0
+   if (ttUSHORT(config+0) != 1) return 0; // Major version 1
+   if (ttUSHORT(config+2) != 0) return 0; // Minor version 0
 
-   lookupListOffset = ttUSHORT(data+8);
-   lookupList = data + lookupListOffset;
+   lookupListOffset = ttUSHORT(config+8);
+   lookupList = config + lookupListOffset;
    lookupCount = ttUSHORT(lookupList);
 
    for (i=0; i<lookupCount; ++i) {
@@ -2638,39 +2638,39 @@ STBTT_DEF void stbtt_GetCodepointHMetrics(const stbtt_fontinfo *info, int codepo
 
 STBTT_DEF void stbtt_GetFontVMetrics(const stbtt_fontinfo *info, int *ascent, int *descent, int *lineGap)
 {
-   if (ascent ) *ascent  = ttSHORT(info->data+info->hhea + 4);
-   if (descent) *descent = ttSHORT(info->data+info->hhea + 6);
-   if (lineGap) *lineGap = ttSHORT(info->data+info->hhea + 8);
+   if (ascent ) *ascent  = ttSHORT(info->config+info->hhea + 4);
+   if (descent) *descent = ttSHORT(info->config+info->hhea + 6);
+   if (lineGap) *lineGap = ttSHORT(info->config+info->hhea + 8);
 }
 
 STBTT_DEF int  stbtt_GetFontVMetricsOS2(const stbtt_fontinfo *info, int *typoAscent, int *typoDescent, int *typoLineGap)
 {
-   int tab = stbtt__find_table(info->data, info->fontstart, "OS/2");
+   int tab = stbtt__find_table(info->config, info->fontstart, "OS/2");
    if (!tab)
       return 0;
-   if (typoAscent ) *typoAscent  = ttSHORT(info->data+tab + 68);
-   if (typoDescent) *typoDescent = ttSHORT(info->data+tab + 70);
-   if (typoLineGap) *typoLineGap = ttSHORT(info->data+tab + 72);
+   if (typoAscent ) *typoAscent  = ttSHORT(info->config+tab + 68);
+   if (typoDescent) *typoDescent = ttSHORT(info->config+tab + 70);
+   if (typoLineGap) *typoLineGap = ttSHORT(info->config+tab + 72);
    return 1;
 }
 
 STBTT_DEF void stbtt_GetFontBoundingBox(const stbtt_fontinfo *info, int *x0, int *y0, int *x1, int *y1)
 {
-   *x0 = ttSHORT(info->data + info->head + 36);
-   *y0 = ttSHORT(info->data + info->head + 38);
-   *x1 = ttSHORT(info->data + info->head + 40);
-   *y1 = ttSHORT(info->data + info->head + 42);
+   *x0 = ttSHORT(info->config + info->head + 36);
+   *y0 = ttSHORT(info->config + info->head + 38);
+   *x1 = ttSHORT(info->config + info->head + 40);
+   *y1 = ttSHORT(info->config + info->head + 42);
 }
 
 STBTT_DEF float stbtt_ScaleForPixelHeight(const stbtt_fontinfo *info, float height)
 {
-   int fheight = ttSHORT(info->data + info->hhea + 4) - ttSHORT(info->data + info->hhea + 6);
+   int fheight = ttSHORT(info->config + info->hhea + 4) - ttSHORT(info->config + info->hhea + 6);
    return (float) height / fheight;
 }
 
 STBTT_DEF float stbtt_ScaleForMappingEmToPixels(const stbtt_fontinfo *info, float pixels)
 {
-   int unitsPerEm = ttUSHORT(info->data + info->head + 18);
+   int unitsPerEm = ttUSHORT(info->config + info->head + 18);
    return pixels / unitsPerEm;
 }
 
@@ -2682,8 +2682,8 @@ STBTT_DEF void stbtt_FreeShape(const stbtt_fontinfo *info, stbtt_vertex *v)
 STBTT_DEF stbtt_uint8 *stbtt_FindSVGDoc(const stbtt_fontinfo *info, int gl)
 {
    int i;
-   stbtt_uint8 *data = info->data;
-   stbtt_uint8 *svg_doc_list = data + stbtt__get_svg((stbtt_fontinfo *) info);
+   stbtt_uint8 *config = info->config;
+   stbtt_uint8 *svg_doc_list = config + stbtt__get_svg((stbtt_fontinfo *) info);
 
    int numEntries = ttUSHORT(svg_doc_list);
    stbtt_uint8 *svg_docs = svg_doc_list + 2;
@@ -2698,7 +2698,7 @@ STBTT_DEF stbtt_uint8 *stbtt_FindSVGDoc(const stbtt_fontinfo *info, int gl)
 
 STBTT_DEF int stbtt_GetGlyphSVG(const stbtt_fontinfo *info, int gl, const char **svg)
 {
-   stbtt_uint8 *data = info->data;
+   stbtt_uint8 *config = info->config;
    stbtt_uint8 *svg_doc;
 
    if (info->svg == 0)
@@ -2706,7 +2706,7 @@ STBTT_DEF int stbtt_GetGlyphSVG(const stbtt_fontinfo *info, int gl, const char *
 
    svg_doc = stbtt_FindSVGDoc(info, gl);
    if (svg_doc != NULL) {
-      *svg = (char *) data + info->svg + ttULONG(svg_doc + 4);
+      *svg = (char *) config + info->svg + ttULONG(svg_doc + 4);
       return ttULONG(svg_doc + 8);
    } else {
       return 0;
@@ -3818,7 +3818,7 @@ STBTT_DEF void stbtt_MakeCodepointBitmap(const stbtt_fontinfo *info, unsigned ch
 //
 // This is SUPER-CRAPPY packing to keep source code small
 
-static int stbtt_BakeFontBitmap_internal(unsigned char *data, int offset,  // font location (use offset=0 for plain .ttf)
+static int stbtt_BakeFontBitmap_internal(unsigned char *config, int offset,  // font location (use offset=0 for plain .ttf)
                                 float pixel_height,                     // height of font in pixels
                                 unsigned char *pixels, int pw, int ph,  // bitmap to be filled in
                                 int first_char, int num_chars,          // characters to bake
@@ -3828,7 +3828,7 @@ static int stbtt_BakeFontBitmap_internal(unsigned char *data, int offset,  // fo
    int x,y,bottom_y, i;
    stbtt_fontinfo f;
    f.userdata = NULL;
-   if (!stbtt_InitFont(&f, data, offset))
+   if (!stbtt_InitFont(&f, config, offset))
       return -1;
    STBTT_memset(pixels, 0, pw*ph); // background of 0 around pixels
    x=y=1;
@@ -4585,7 +4585,7 @@ STBTT_DEF unsigned char * stbtt_GetGlyphSDF(const stbtt_fontinfo *info, float sc
    float scale_x = scale, scale_y = scale;
    int ix0,iy0,ix1,iy1;
    int w,h;
-   unsigned char *data;
+   unsigned char *config;
 
    if (scale == 0) return NULL;
 
@@ -4616,7 +4616,7 @@ STBTT_DEF unsigned char * stbtt_GetGlyphSDF(const stbtt_fontinfo *info, float sc
       float *precompute;
       stbtt_vertex *verts;
       int num_verts = stbtt_GetGlyphShape(info, glyph, &verts);
-      data = (unsigned char *) STBTT_malloc(w * h, info->userdata);
+      config = (unsigned char *) STBTT_malloc(w * h, info->userdata);
       precompute = (float *) STBTT_malloc(num_verts * sizeof(float), info->userdata);
 
       for (i=0,j=num_verts-1; i < num_verts; j=i++) {
@@ -4756,13 +4756,13 @@ STBTT_DEF unsigned char * stbtt_GetGlyphSDF(const stbtt_fontinfo *info, float sc
                val = 0;
             else if (val > 255)
                val = 255;
-            data[(y-iy0)*w+(x-ix0)] = (unsigned char) val;
+            config[(y-iy0)*w+(x-ix0)] = (unsigned char) val;
          }
       }
       STBTT_free(precompute, info->userdata);
       STBTT_free(verts, info->userdata);
    }
-   return data;
+   return config;
 }
 
 STBTT_DEF unsigned char * stbtt_GetCodepointSDF(const stbtt_fontinfo *info, float scale, int codepoint, int padding, unsigned char onedge_value, float pixel_dist_scale, int *width, int *height, int *xoff, int *yoff)
@@ -4830,7 +4830,7 @@ static int stbtt_CompareUTF8toUTF16_bigendian_internal(char *s1, int len1, char 
 STBTT_DEF const char *stbtt_GetFontNameString(const stbtt_fontinfo *font, int *length, int platformID, int encodingID, int languageID, int nameID)
 {
    stbtt_int32 i,count,stringOffset;
-   stbtt_uint8 *fc = font->data;
+   stbtt_uint8 *fc = font->config;
    stbtt_uint32 offset = font->fontstart;
    stbtt_uint32 nm = stbtt__find_table(fc, offset, "name");
    if (!nm) return NULL;
@@ -4940,26 +4940,26 @@ static int stbtt_FindMatchingFont_internal(unsigned char *font_collection, char 
 #pragma GCC diagnostic ignored "-Wcast-qual"
 #endif
 
-STBTT_DEF int stbtt_BakeFontBitmap(const unsigned char *data, int offset,
+STBTT_DEF int stbtt_BakeFontBitmap(const unsigned char *config, int offset,
                                 float pixel_height, unsigned char *pixels, int pw, int ph,
                                 int first_char, int num_chars, stbtt_bakedchar *chardata)
 {
-   return stbtt_BakeFontBitmap_internal((unsigned char *) data, offset, pixel_height, pixels, pw, ph, first_char, num_chars, chardata);
+   return stbtt_BakeFontBitmap_internal((unsigned char *) config, offset, pixel_height, pixels, pw, ph, first_char, num_chars, chardata);
 }
 
-STBTT_DEF int stbtt_GetFontOffsetForIndex(const unsigned char *data, int index)
+STBTT_DEF int stbtt_GetFontOffsetForIndex(const unsigned char *config, int index)
 {
-   return stbtt_GetFontOffsetForIndex_internal((unsigned char *) data, index);
+   return stbtt_GetFontOffsetForIndex_internal((unsigned char *) config, index);
 }
 
-STBTT_DEF int stbtt_GetNumberOfFonts(const unsigned char *data)
+STBTT_DEF int stbtt_GetNumberOfFonts(const unsigned char *config)
 {
-   return stbtt_GetNumberOfFonts_internal((unsigned char *) data);
+   return stbtt_GetNumberOfFonts_internal((unsigned char *) config);
 }
 
-STBTT_DEF int stbtt_InitFont(stbtt_fontinfo *info, const unsigned char *data, int offset)
+STBTT_DEF int stbtt_InitFont(stbtt_fontinfo *info, const unsigned char *config, int offset)
 {
-   return stbtt_InitFont_internal(info, (unsigned char *) data, offset);
+   return stbtt_InitFont_internal(info, (unsigned char *) config, offset);
 }
 
 STBTT_DEF int stbtt_FindMatchingFont(const unsigned char *fontdata, const char *name, int flags)
@@ -4983,7 +4983,7 @@ STBTT_DEF int stbtt_CompareUTF8toUTF16_bigendian(const char *s1, int len1, const
 //
 //   1.25 (2021-07-11) many fixes
 //   1.24 (2020-02-05) fix warning
-//   1.23 (2020-02-02) query SVG data for glyphs; query whole kerning table (but only kern not GPOS)
+//   1.23 (2020-02-02) query SVG config for glyphs; query whole kerning table (but only kern not GPOS)
 //   1.22 (2019-08-11) minimize missing-glyph duplication; fix kerning if both 'GPOS' and 'kern' are defined
 //   1.21 (2019-02-25) fix warning
 //   1.20 (2019-02-07) PackFontRange skips missing codepoints; GetScaleFontVMetrics()

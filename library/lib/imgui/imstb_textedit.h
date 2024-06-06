@@ -126,7 +126,7 @@
 // Symbols you must define for implementation mode:
 //
 //    STB_TEXTEDIT_STRING               the type of object representing a string being edited,
-//                                      typically this is a wrapper object with other data you need
+//                                      typically this is a wrapper object with other config you need
 //
 //    STB_TEXTEDIT_STRINGLEN(obj)       the length of the string (ideally O(1))
 //    STB_TEXTEDIT_LAYOUTROW(&r,obj,n)  returns the results of laying out a line of characters
@@ -300,7 +300,7 @@
 
 typedef struct
 {
-   // private data
+   // private config
    STB_TEXTEDIT_POSITIONTYPE  where;
    STB_TEXTEDIT_POSITIONTYPE  insert_length;
    STB_TEXTEDIT_POSITIONTYPE  delete_length;
@@ -309,7 +309,7 @@ typedef struct
 
 typedef struct
 {
-   // private data
+   // private config
    StbUndoRecord          undo_rec [STB_TEXTEDIT_UNDOSTATECOUNT];
    STB_TEXTEDIT_CHARTYPE  undo_char[STB_TEXTEDIT_UNDOCHARCOUNT];
    short undo_point, redo_point;
@@ -320,7 +320,7 @@ typedef struct
 {
    /////////////////////
    //
-   // public data
+   // public config
    //
 
    int cursor;
@@ -343,7 +343,7 @@ typedef struct
 
    /////////////////////
    //
-   // private data
+   // private config
    //
    unsigned char cursor_at_end_of_line; // not implemented yet
    unsigned char initialized;
@@ -1154,7 +1154,7 @@ static void stb_textedit_discard_redo(StbUndoState *state)
       // if the k'th undo state has characters, clean those up
       if (state->undo_rec[k].char_storage >= 0) {
          int n = state->undo_rec[k].insert_length, i;
-         // move the remaining redo character data to the end of the buffer
+         // move the remaining redo character config to the end of the buffer
          state->redo_char_point += n;
          STB_TEXTEDIT_memmove(state->undo_char + state->redo_char_point, state->undo_char + state->redo_char_point-n, (size_t) ((STB_TEXTEDIT_UNDOCHARCOUNT - state->redo_char_point)*sizeof(STB_TEXTEDIT_CHARTYPE)));
          // adjust the position of all the other records to account for above memmove

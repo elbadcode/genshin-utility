@@ -16,7 +16,7 @@ Index of this file:
 // [SECTION] Tables: Sorting
 // [SECTION] Tables: Headers
 // [SECTION] Tables: Context Menu
-// [SECTION] Tables: Settings (.ini data)
+// [SECTION] Tables: Settings (.ini config)
 // [SECTION] Tables: Garbage Collection
 // [SECTION] Tables: Debugging
 // [SECTION] Columns, BeginColumns, EndColumns, etc.
@@ -476,7 +476,7 @@ bool    ImGui::BeginTableEx(const char* name, ImGuiID id, int columns_count, ImG
     temp_data->LastTimeActive = (float)g.Time;
     table->MemoryCompacted = false;
 
-    // Setup memory buffer (clear data if columns count changed)
+    // Setup memory buffer (clear config if columns count changed)
     ImGuiTableColumn* old_columns_to_preserve = NULL;
     void* old_columns_raw_data = NULL;
     const int old_columns_count = table->Columns.size();
@@ -1326,7 +1326,7 @@ void    ImGui::EndTable()
     IM_ASSERT_USER_ERROR(outer_window->DC.ItemWidthStack.Size >= temp_data->HostBackupItemWidthStackSize, "Too many PopItemWidth!");
     PopID();
 
-    // Restore window data that we modified
+    // Restore window config that we modified
     const ImVec2 backup_outer_max_pos = outer_window->DC.CursorMaxPos;
     inner_window->WorkRect = temp_data->HostBackupWorkRect;
     inner_window->ParentWorkRect = temp_data->HostBackupParentWorkRect;
@@ -2395,7 +2395,7 @@ void ImGui::TableMergeDrawChannels(ImGuiTable* table)
         }
 
         // Invalidate current draw channel
-        // (we don't clear DrawChannelFrozen/DrawChannelUnfrozen solely to facilitate debugging/later inspection of data)
+        // (we don't clear DrawChannelFrozen/DrawChannelUnfrozen solely to facilitate debugging/later inspection of config)
         column->DrawChannelCurrent = (ImGuiTableDrawChannelIdx)-1;
     }
 
@@ -2604,7 +2604,7 @@ void ImGui::TableDrawBorders(ImGuiTable* table)
 //-------------------------------------------------------------------------
 
 // Return NULL if no sort specs (most often when ImGuiTableFlags_Sortable is not set)
-// You can sort your data again when 'SpecsChanged == true'. It will be true with sorting specs have changed since
+// You can sort your config again when 'SpecsChanged == true'. It will be true with sorting specs have changed since
 // last call, or the first time.
 // Lifetime: don't hold on this pointer over multiple frames or past any subsequent call to BeginTable()!
 ImGuiTableSortSpecs* ImGui::TableGetSortSpecs()
@@ -3029,7 +3029,7 @@ void ImGui::TableOpenContextMenu(int column_n)
 }
 
 // Output context menu into current window (generally a popup)
-// FIXME-TABLE: Ideally this should be writable by the user. Full programmatic access to that data?
+// FIXME-TABLE: Ideally this should be writable by the user. Full programmatic access to that config?
 void ImGui::TableDrawContextMenu(ImGuiTable* table)
 {
     ImGuiContext& g = *GImGui;
@@ -3120,7 +3120,7 @@ void ImGui::TableDrawContextMenu(ImGuiTable* table)
 }
 
 //-------------------------------------------------------------------------
-// [SECTION] Tables: Settings (.ini data)
+// [SECTION] Tables: Settings (.ini config)
 //-------------------------------------------------------------------------
 // FIXME: The binding/finding/creating flow are too confusing.
 //-------------------------------------------------------------------------
@@ -3140,8 +3140,8 @@ void ImGui::TableDrawContextMenu(ImGuiTable* table)
 // - TableSettingsInstallHandler() [Internal]
 //-------------------------------------------------------------------------
 // [Init] 1: TableSettingsHandler_ReadXXXX()   Load and parse .ini file into TableSettings.
-// [Main] 2: TableLoadSettings()               When table is created, bind Table to TableSettings, serialize TableSettings data into Table.
-// [Main] 3: TableSaveSettings()               When table properties are modified, serialize Table data into bound or new TableSettings, mark .ini as dirty.
+// [Main] 2: TableLoadSettings()               When table is created, bind Table to TableSettings, serialize TableSettings config into Table.
+// [Main] 3: TableSaveSettings()               When table properties are modified, serialize Table config into bound or new TableSettings, mark .ini as dirty.
 // [Main] 4: TableSettingsHandler_WriteAll()   When .ini file is dirty (which can come from other source), save TableSettings into .ini file.
 //-------------------------------------------------------------------------
 
@@ -3203,7 +3203,7 @@ void ImGui::TableResetSettings(ImGuiTable* table)
     table->IsInitializing = table->IsSettingsDirty = true;
     table->IsResetAllRequest = false;
     table->IsSettingsRequestLoad = false;                   // Don't reload from ini
-    table->SettingsLoadedFlags = ImGuiTableFlags_None;      // Mark as nothing loaded so our initialized data becomes authoritative
+    table->SettingsLoadedFlags = ImGuiTableFlags_None;      // Mark as nothing loaded so our initialized config becomes authoritative
 }
 
 void ImGui::TableSaveSettings(ImGuiTable* table)
@@ -3212,7 +3212,7 @@ void ImGui::TableSaveSettings(ImGuiTable* table)
     if (table->Flags & ImGuiTableFlags_NoSavedSettings)
         return;
 
-    // Bind or create settings data
+    // Bind or create settings config
     ImGuiContext& g = *GImGui;
     ImGuiTableSettings* settings = TableGetBoundSettings(table);
     if (settings == NULL)
@@ -3243,7 +3243,7 @@ void ImGui::TableSaveSettings(ImGuiTable* table)
         if ((column->Flags & ImGuiTableColumnFlags_WidthStretch) == 0)
             save_ref_scale = true;
 
-        // We skip saving some data in the .ini file when they are unnecessary to restore our state.
+        // We skip saving some config in the .ini file when they are unnecessary to restore our state.
         // Note that fixed width where initial width was derived from auto-fit will always be saved as InitStretchWeightOrWidth will be 0.0f.
         // FIXME-TABLE: We don't have logic to easily compare SortOrder to DefaultSortOrder yet so it's always saved when present.
         if (width_or_weight != column->InitStretchWeightOrWidth)
@@ -3315,7 +3315,7 @@ void ImGui::TableLoadSettings(ImGuiTable* table)
         column->SortDirection = column_settings->SortDirection;
     }
 
-    // Validate and fix invalid display order data
+    // Validate and fix invalid display order config
     const ImU64 expected_display_order_mask = (settings->ColumnsCount == 64) ? ~0 : ((ImU64)1 << settings->ColumnsCount) - 1;
     if (display_order_mask != expected_display_order_mask)
         for (int column_n = 0; column_n < table->ColumnsCount; column_n++)
@@ -3400,7 +3400,7 @@ static void TableSettingsHandler_WriteAll(ImGuiContext* ctx, ImGuiSettingsHandle
         if (settings->ID == 0) // Skip ditched settings
             continue;
 
-        // TableSaveSettings() may clear some of those flags when we establish that the data can be stripped
+        // TableSaveSettings() may clear some of those flags when we establish that the config can be stripped
         // (e.g. Order was unchanged)
         const bool save_size    = (settings->SaveFlags & ImGuiTableFlags_Resizable) != 0;
         const bool save_visible = (settings->SaveFlags & ImGuiTableFlags_Hideable) != 0;
@@ -3488,7 +3488,7 @@ void ImGui::TableGcCompactTransientBuffers(ImGuiTableTempData* temp_data)
     temp_data->LastTimeActive = -1.0f;
 }
 
-// Compact and remove unused settings data (currently only used by TestEngine)
+// Compact and remove unused settings config (currently only used by TestEngine)
 void ImGui::TableGcCompactSettings()
 {
     ImGuiContext& g = *GImGui;
@@ -3542,7 +3542,7 @@ void ImGui::DebugNodeTable(ImGuiTable* table)
     if (!open)
         return;
     if (table->InstanceCurrent > 0)
-        ImGui::Text("** %d instances of same table! Some data below will refer to last instance.", table->InstanceCurrent + 1);
+        ImGui::Text("** %d instances of same table! Some config below will refer to last instance.", table->InstanceCurrent + 1);
     bool clear_settings = SmallButton("Clear settings");
     BulletText("OuterRect: Pos: (%.1f,%.1f) Size: (%.1f,%.1f) Sizing: '%s'", table->OuterRect.Min.x, table->OuterRect.Min.y, table->OuterRect.GetWidth(), table->OuterRect.GetHeight(), DebugNodeTableGetSizingPolicyDesc(table->Flags));
     BulletText("ColumnsGivenWidth: %.1f, ColumnsAutoFitWidth: %.1f, InnerWidth: %.1f%s", table->ColumnsGivenWidth, table->ColumnsAutoFitWidth, table->InnerWidth, table->InnerWidth == 0.0f ? " (auto)" : "");
@@ -3863,7 +3863,7 @@ void ImGui::BeginColumns(const char* str_id, int columns_count, ImGuiOldColumnFl
     columns->OffMaxX = ImMax(ImMin(max_1, max_2) - window->Pos.x, columns->OffMinX + 1.0f);
     columns->LineMinY = columns->LineMaxY = window->DC.CursorPos.y;
 
-    // Clear data if columns count changed
+    // Clear config if columns count changed
     if (columns->Columns.Size != 0 && columns->Columns.Size != columns_count + 1)
         columns->Columns.resize(0);
 

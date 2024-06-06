@@ -1,5 +1,5 @@
 #include <ui/options.hpp>
-#include <lff/lff.hpp>
+#include <ini_file.hpp>
 
 #include <shlobj.h>
 
@@ -11,39 +11,44 @@ void ui::options::load() {
       return;
   }
 
-  auto data = lff::parse(ui::options::path);
+  const ini_file& config = ini_file::load_cache(ui::options::path);
 
-  if (!data.has_value())
-    return;
+  const auto config_get = [&config](const std::string& section, const std::string& key, auto& values) {
+      if (config.get(section, key, values))
+	  return true;
+      };
+
 
   try {
-    ui::options::menu::open_on_start = data->get_value<bool>("openMenuOnStart").value();
-    ui::options::tools::fps_counter = data->get_value<bool>("fpsCounter").value();
-    ui::options::tools::enable_vsync = data->get_value<bool>("enableVSync").value();
-    ui::options::tools::disable_fog = data->get_value<bool>("disableFog").value();
-    ui::options::tools::fps_limit = data->get_value<int>("fpsLimit").value();
-    ui::options::tools::camera_fov = data->get_value<int>("cameraFov").value();
+
+      
+    ui::options::menu::open_on_start = config_get("Menu", "opened", ui::options::menu::opened);
+    ui::options::tools::fps_counter = config_get("Menu", "open_on_start", ui::options::menu::open_on_start);
+    ui::options::tools::enable_vsync = config_get("Tools", "enable_vsync", ui::options::tools::enable_vsync);
+    ui::options::tools::disable_fog = config_get("Tools", "disable_fog", ui::options::tools::disable_fog);
+    ui::options::tools::fps_limit = config_get("Tools", "fps_limit", ui::options::tools::fps_limit);
+    ui::options::tools::camera_fov = config_get("Tools", "camera_fov", ui::options::tools::camera_fov);
   }
   catch (std::exception&) {
     // ignored
   }
 }
 
-void ui::options::save() {
-  lff::data_container container;
-  container.set_value("openMenuOnStart", ui::options::menu::open_on_start);
-  container.set_value("fpsCounter", ui::options::tools::fps_counter);
-  container.set_value("enableVSync", ui::options::tools::enable_vsync);
-  container.set_value("disableFog", ui::options::tools::disable_fog);
-  container.set_value("fpsLimit", ui::options::tools::fps_limit);
-  container.set_value("cameraFov", ui::options::tools::camera_fov);
 
-  try {
-    lff::write(container, ui::options::path);
-  }
-  catch (std::exception&) {
-    // ignored
-  }
+    
+   
+void ui::options::save()
+{
+    ini_file& config = ini_file::load_cache(ui::options::path);
+
+    config.set("Menu", "opened", ui::options::menu::opened);
+    config.set("Menu", "open_on_start", ui::options::menu::open_on_start);
+    config.set("Tools", "fpsCounter", ui::options::tools::fps_counter);
+    config.set("Tools", "enable_vsync", ui::options::tools::enable_vsync);
+    config.set("Tools", "disable_fog", ui::options::tools::disable_fog);
+    config.set("Tools", "fps_limit", ui::options::tools::fps_limit);
+    config.set("Tools", "camera_fov", ui::options::tools::camera_fov);
+
 }
 
 std::filesystem::path ui::options::get_working_path() {

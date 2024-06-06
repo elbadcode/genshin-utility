@@ -23,6 +23,7 @@
     <ClInclude Include="lib\minhook\MinHook.h" />
     <ClInclude Include="inc\ui\options.hpp" />
     <ClInclude Include="inc\lff.hpp" />
+    <ClInclude Include="lib\lff\lff.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="lib\imgui\imgui.cpp" />
@@ -41,5 +42,9 @@
     <ClCompile Include="src\sdk.cpp" />
     <ClCompile Include="src\ui\options.cpp" />
     <ClCompile Include="src\lff.cpp" />
+    <ClCompile Include="lib\lff\lff.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="CMakeLists.txt" />
   </ItemGroup>
 </Project>

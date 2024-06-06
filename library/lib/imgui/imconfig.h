@@ -7,9 +7,9 @@
 // B) or '#define IMGUI_USER_CONFIG "my_imgui_config.h"' in your project and then add directives in your own file without touching this template.
 //-----------------------------------------------------------------------------
 // You need to make sure that configuration settings are defined consistently _everywhere_ Dear ImGui is used, which include the imgui*.cpp
-// files but also _any_ of your code that uses Dear ImGui. This is because some compile-time options have an affect on data structures.
-// Defining those options in imconfig.h will ensure every compilation unit gets to see the same data structure layouts.
-// Call IMGUI_CHECKVERSION() from your .cpp files to verify that the data structures your files are using are matching the ones imgui.cpp is using.
+// files but also _any_ of your code that uses Dear ImGui. This is because some compile-time options have an affect on config structures.
+// Defining those options in imconfig.h will ensure every compilation unit gets to see the same config structure layouts.
+// Call IMGUI_CHECKVERSION() from your .cpp files to verify that the config structures your files are using are matching the ones imgui.cpp is using.
 //-----------------------------------------------------------------------------
 
 #pragma once
