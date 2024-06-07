@@ -30,7 +30,12 @@ void ui::options::load() {
     ui::options::tools::camera_fov = config_get("Tools", "camera_fov", ui::options::tools::camera_fov);
   }
   catch (std::exception&) {
-    // ignored
+      ui::options::menu::open_on_start = false;
+      ui::options::tools::fps_counter = false;
+      ui::options::tools::enable_vsync = false;
+      ui::options::tools::disable_fog = true;
+      ui::options::tools::fps_limit = 360;
+      ui::options::tools::camera_fov = 65;
   }
 }
 
